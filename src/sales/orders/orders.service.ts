@@ -22,6 +22,7 @@ import { NotificationsService } from 'src/notifications/notification.service';
 import { Shop } from 'src/catalog/shops/models/shop.entity';
 import { OrderFilterDto } from './dto/order-filter.dto';
 import { Address } from '../../address/models/address.entity';
+import { NotificationsGateway } from 'src/notifications.gateway';
 
 const today = new Date();
 const dayOfWeek = today.getDay(); // 0 (domingo) a 6 (sábado)
@@ -53,6 +54,7 @@ export class OrdersService {
     private readonly deliveryMethodsService: DeliveryMethodsService,
     private readonly paymentMethodsService: PaymentMethodsService,
     private readonly notificationsService: NotificationsService,
+    private readonly notificationsGateway: NotificationsGateway,
   ) { }
 
   async getOrders(
@@ -351,6 +353,9 @@ export class OrdersService {
       await this.mailService.sendOrderInvoiceEmail(orderData.contactEmail, orderForEmail);
       await this.notifySystemAdmin([Role.Admin, Role.Manager], savedOrder);
       await this.notifyShopkeepersOnOrder(savedOrder);
+      
+      // Emit WebSocket event for real-time order list update
+      this.notificationsGateway.broadcastOrderCreated(savedOrder);
     }
 
     return savedOrder;
@@ -453,7 +458,12 @@ export class OrdersService {
     }
     const { delivery, payment, items, ...toAssign } = orderData;
     Object.assign(order, toAssign);
-    return this.ordersRepository.save(order, { listeners: !ignoreSubscribers });
+    const updatedOrder = await this.ordersRepository.save(order, { listeners: !ignoreSubscribers });
+    
+    // Emit WebSocket event for real-time order list update
+    this.notificationsGateway.broadcastOrderUpdated(updatedOrder);
+    
+    return updatedOrder;
   }
 
   async deleteOrder(id: number): Promise<void> {

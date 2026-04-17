@@ -20,7 +20,14 @@ export class Address {
   @Column({ default: true })
   visible: boolean;
 
-  @Column({ type: 'double precision', nullable: true })
+  @Column({ 
+    type: 'double precision', 
+    nullable: true,
+    transformer: {
+      to: (value: number | null | undefined) => value,
+      from: (value: number | null | undefined) => value != null ? Math.round(value) : value
+    }
+  })
   price?: number;
 
   @ManyToOne(() => Address, (address) => address.childAddresses, {

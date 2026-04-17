@@ -83,6 +83,16 @@ export class NotificationsGateway
         this.server.to(`role_${role}`).emit('notification', payload);
     }
 
+    broadcastOrderCreated(order: any) {
+        console.log('📦 Broadcasting order created:', order.id);
+        this.server.emit('order:created', order);
+    }
+
+    broadcastOrderUpdated(order: any) {
+        console.log('📝 Broadcasting order updated:', order.id);
+        this.server.emit('order:updated', order);
+    }
+
     @SubscribeMessage('joinRole')
     handleJoinRole(client: Socket, role: string) {
         client.join(`role_${role}`);
