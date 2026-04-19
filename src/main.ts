@@ -41,6 +41,19 @@ async function bootstrap() {
       credentials: true,
     });
   }
+
+  // Middleware adicional para rotas de imagens (permite qualquer origem)
+  app.use(['/products/*/photos/*', '/banners/*/image', '/splash-screens/*/image'], (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    res.header('Access-Control-Max-Age', '86400');
+    
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
   
 
   const swaggerConfig = new DocumentBuilder()
