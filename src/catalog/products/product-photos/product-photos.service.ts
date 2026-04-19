@@ -68,8 +68,9 @@ export class ProductPhotosService {
       await this.localFilesService.createPhotoPlaceholder(file);
     product.photos.push(photo);
     await this.productsRepository.save(product);
+    // Nova foto no início da lista
     if (product.photosOrder) {
-      product.photosOrder = [...product.photosOrder.split(','), photo.id].join(
+      product.photosOrder = [photo.id, ...product.photosOrder.split(',')].join(
         ',',
       );
     } else {
@@ -95,8 +96,9 @@ export class ProductPhotosService {
 
     await this.productsRepository.save(product);
 
+    // Nova foto no início da lista
     product.photosOrder = product.photosOrder
-      ? [...product.photosOrder.split(','), photo.id].join(',')
+      ? [photo.id, ...product.photosOrder.split(',')].join(',')
       : photo.id.toString();
 
     return this.productsRepository.save(product);
