@@ -21,6 +21,45 @@ async function bootstrap() {
     app.getHttpAdapter().getInstance().set('trust proxy', 1);
   }
 
+  // Middleware adicional para rotas de imagens (permite qualquer origem)
+  // IMPORTANTE: Este middleware deve vir ANTES do enableCors para ter precedência
+  const imageRoutes = ['/products/*/photos/*', '/banners/*/image', '/splash-screens/*/image'];
+  
+  app.use((req, res, next) => {
+    // Verificar se a rota corresponde a alguma rota de imagem
+    const isImageRoute = imageRoutes.some(route => {
+      const regex = new RegExp('^' + route.replace(/\*/g, '[^/]+') + '$');
+      return regex.test(req.path);
+    });
+
+    if (isImageRoute) {
+      // Obter a origem da requisição
+      const origin = req.headers.origin || req.headers.referer || '*';
+      
+      // Headers CORS permissivos para imagens
+      // Se houver origem, usar ela; senão usar *
+      if (origin && origin !== '*') {
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Access-Control-Allow-Credentials', 'true');
+      } else {
+        res.header('Access-Control-Allow-Origin', '*');
+      }
+      
+      res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+      res.header('Access-Control-Max-Age', '86400');
+      res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.header('Vary', 'Origin'); // Importante para cache correto
+      
+      // Responder imediatamente a OPTIONS
+      if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+      }
+    }
+    
+    next();
+  });
+
   // Configure CORS based on environment
   if (nodeEnv === 'production') {
     app.enableCors({
@@ -41,19 +80,6 @@ async function bootstrap() {
       credentials: true,
     });
   }
-
-  // Middleware adicional para rotas de imagens (permite qualquer origem)
-  app.use(['/products/*/photos/*', '/banners/*/image', '/splash-screens/*/image'], (req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    res.header('Access-Control-Max-Age', '86400');
-    
-    if (req.method === 'OPTIONS') {
-      return res.sendStatus(200);
-    }
-    next();
-  });
   
 
   const swaggerConfig = new DocumentBuilder()

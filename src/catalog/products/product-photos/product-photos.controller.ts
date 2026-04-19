@@ -71,9 +71,6 @@ export class ProductPhotosController {
       'Content-Type': 'image/png',
       'Content-Disposition': 'inline',
       'Cache-Control': 'public, max-age=86400',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
     });
 
     res.send(Buffer.from(byteArray));
