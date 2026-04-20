@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { RedocModule } from 'nestjs-redoc';
 import * as crypto from 'crypto';
+
 if (!(global as any).crypto) {
   (global as any).crypto = crypto;
 }
@@ -25,7 +26,7 @@ async function bootstrap() {
   // IMPORTANTE: Este middleware deve vir ANTES do enableCors para ter precedência
   const imageRoutes = ['/products/*/photos/*', '/banners/*/image', '/splash-screens/*/image'];
   
-  app.use((req, res, next) => {
+  app.use((req: any, res: any, next: any) => {
     // Verificar se a rota corresponde a alguma rota de imagem
     const isImageRoute = imageRoutes.some(route => {
       const regex = new RegExp('^' + route.replace(/\*/g, '[^/]+') + '$');
@@ -34,11 +35,13 @@ async function bootstrap() {
 
     if (isImageRoute) {
       // Obter a origem da requisição
-      const origin = req.headers.origin || req.headers.referer || '*';
+      const origin = req.headers.origin;
+      
+      console.log(`[IMAGE CORS] Request to ${req.path} from origin: ${origin || 'none'}`);
       
       // Headers CORS permissivos para imagens
       // Se houver origem, usar ela; senão usar *
-      if (origin && origin !== '*') {
+      if (origin) {
         res.header('Access-Control-Allow-Origin', origin);
         res.header('Access-Control-Allow-Credentials', 'true');
       } else {
@@ -51,8 +54,11 @@ async function bootstrap() {
       res.header('Cross-Origin-Resource-Policy', 'cross-origin');
       res.header('Vary', 'Origin'); // Importante para cache correto
       
+      console.log(`[IMAGE CORS] Headers set - Origin: ${res.getHeader('Access-Control-Allow-Origin')}, Credentials: ${res.getHeader('Access-Control-Allow-Credentials')}`);
+      
       // Responder imediatamente a OPTIONS
       if (req.method === 'OPTIONS') {
+        console.log('[IMAGE CORS] Responding to OPTIONS preflight');
         return res.sendStatus(204);
       }
     }
