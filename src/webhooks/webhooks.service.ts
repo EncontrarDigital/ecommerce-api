@@ -4,12 +4,14 @@ import { NotificationsService } from 'src/notifications/notification.service';
 import { OrderNotificationDto } from './dto/order-notification.dto';
 import { Role } from 'src/users/models/role.enum';
 import { NotificationType } from 'src/notifications/models/notification.entity';
+import { OrdersService } from 'src/sales/orders/orders.service';
 
 @Injectable()
 export class WebhooksService {
   constructor(
     private readonly notificationsGateway: NotificationsGateway,
     private readonly notificationsService: NotificationsService,
+    private readonly ordersService: OrdersService,
   ) {}
 
   /**
@@ -50,7 +52,38 @@ export class WebhooksService {
 
       console.log(`✅ Notification broadcasted to admins/managers for order #${data.orderNumber}`);
 
-      // 2. Salvar notificação no banco de dados para todos os admins/managers
+      // 2. Emitir eventos específicos de pedidos para atualização da lista em tempo real
+      if (data.type === 'new_order') {
+        // Buscar pedido completo do banco de dados
+        try {
+          const fullOrder = await this.ordersService.getOrder(data.orderId);
+          if (fullOrder) {
+            // Broadcast order:created event com dados completos
+            this.notificationsGateway.broadcastOrderCreated(fullOrder);
+            console.log(`📦 Order created event broadcasted with full data for order #${data.orderNumber}`);
+          } else {
+            console.warn(`⚠️ Could not find order ${data.orderId} to broadcast`);
+          }
+        } catch (error) {
+          console.error(`❌ Error fetching order ${data.orderId}:`, error.message);
+        }
+      } else if (data.type === 'order_status_update') {
+        // Buscar pedido completo do banco de dados
+        try {
+          const fullOrder = await this.ordersService.getOrder(data.orderId);
+          if (fullOrder) {
+            // Broadcast order:updated event com dados completos
+            this.notificationsGateway.broadcastOrderUpdated(fullOrder);
+            console.log(`📝 Order updated event broadcasted with full data for order #${data.orderNumber}`);
+          } else {
+            console.warn(`⚠️ Could not find order ${data.orderId} to broadcast`);
+          }
+        } catch (error) {
+          console.error(`❌ Error fetching order ${data.orderId}:`, error.message);
+        }
+      }
+
+      // 3. Salvar notificação no banco de dados para todos os admins/managers
       await this.notificationsService.notifyUsersByRole({
         role: Role.Admin,
         title: data.title,
