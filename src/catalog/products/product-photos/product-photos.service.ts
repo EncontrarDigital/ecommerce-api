@@ -105,18 +105,60 @@ export class ProductPhotosService {
   }
 
   async deleteProductPhoto(id: number, photoId: number): Promise<Product> {
-    const product = await this.productsRepository.findOne({ where: { id } });
+    const product = await this.productsRepository.findOne({ 
+      where: { id },
+      relations: ['photos']
+    });
+    
     if (!product) {
       throw new NotFoundError('product', 'id', id.toString());
     }
+
+    // Encontrar a foto antes de deletar para obter os caminhos dos arquivos
+    const photoToDelete = product.photos.find((p) => p.id === photoId);
+    
+    if (photoToDelete) {
+      // Deletar arquivos físicos do Supabase em background (não bloqueia a resposta)
+      this.deletePhotoFiles(photoToDelete).catch((error) => {
+        console.error(`❌ Erro ao deletar arquivos da foto ${photoId}:`, error.message);
+      });
+    }
+
+    // Remover foto da lista
     product.photos = product.photos.filter((p) => p.id !== photoId);
     await this.productsRepository.save(product);
+    
+    // Atualizar ordem das fotos
     if (product.photosOrder) {
       product.photosOrder = product.photosOrder
         .split(',')
         .filter((p) => p !== photoId.toString())
         .join(',');
     }
+    
     return this.productsRepository.save(product);
+  }
+
+  /**
+   * Deletar arquivos físicos da foto (original e thumbnail)
+   * @private
+   */
+  private async deletePhotoFiles(photo: ProductPhoto): Promise<void> {
+    try {
+      // Deletar arquivo original
+      if (photo.path) {
+        await this.localFilesService.deletePhoto(photo.path);
+        console.log(`✅ Arquivo original deletado: ${photo.path}`);
+      }
+
+      // Deletar thumbnail
+      if (photo.thumbnailPath) {
+        await this.localFilesService.deletePhoto(photo.thumbnailPath);
+        console.log(`✅ Thumbnail deletado: ${photo.thumbnailPath}`);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao deletar arquivos físicos:', error);
+      throw error;
+    }
   }
 }
