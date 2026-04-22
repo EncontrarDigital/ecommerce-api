@@ -72,7 +72,8 @@ async function bootstrap() {
         res.header('Access-Control-Allow-Credentials', 'true');
       }
       
-      res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      // Permitir todos os métodos HTTP para rotas de fotos (GET, DELETE, POST, etc)
+      res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, HEAD, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
       res.header('Access-Control-Max-Age', '86400');
       res.header('Cross-Origin-Resource-Policy', 'cross-origin');
