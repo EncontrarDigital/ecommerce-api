@@ -270,11 +270,18 @@ export class OrdersService {
     userId: number | null,
     orderData: OrderCreateDto,
     ignoreSubscribers = false,
+    request?: any,
   ): Promise<Order> {
     const order = new Order();
     if (userId) {
       order.user = await this.usersService.getUser(userId);
     }
+    
+    // Detectar origem do pedido
+    const sourceInfo = this.detectOrderSource(request);
+    order.source = sourceInfo.source;
+    order.source_details = sourceInfo.details;
+    
     order.items = await this.getItems(order, orderData.items);
     order.fullName = orderData.fullName;
     order.contactEmail = orderData.contactEmail;
@@ -476,5 +483,88 @@ export class OrdersService {
     const year = new Date(order.created).getFullYear();
     const paddedId = order.id.toString().padStart(6, '0');
     return `Enc${year}/${paddedId}`;
+  }
+
+  /**
+   * Detectar origem do pedido baseado no request
+   * @private
+   */
+  private detectOrderSource(request?: any): { source: string; details: any } {
+    if (!request) {
+      return {
+        source: 'unknown',
+        details: null,
+      };
+    }
+
+    const userAgent = request.headers?.['user-agent'] || '';
+    const ua = userAgent.toLowerCase();
+
+    let source = 'unknown';
+    let platform_type = 'unknown';
+
+    // Mobile App Flutter
+    if (ua.includes('encontrarapp')) {
+      if (ua.includes('android')) {
+        source = 'android';
+        platform_type = 'mobile-app';
+      } else if (ua.includes('ios')) {
+        source = 'ios';
+        platform_type = 'mobile-app';
+      } else {
+        source = 'mobile-app';
+        platform_type = 'mobile-app';
+      }
+    }
+    // Dart/Flutter genérico
+    else if (ua.includes('dart') && (ua.includes('android') || ua.includes('dalvik'))) {
+      source = 'android';
+      platform_type = 'mobile-app';
+    } else if (ua.includes('dart') && (ua.includes('ios') || ua.includes('cfnetwork'))) {
+      source = 'ios';
+      platform_type = 'mobile-app';
+    }
+    // Web browsers
+    else if (ua.includes('mozilla') || ua.includes('chrome') || ua.includes('safari') || ua.includes('firefox')) {
+      source = 'web';
+      platform_type = 'web-app';
+
+      // Detectar browser específico
+      if (ua.includes('chrome') && !ua.includes('edg')) {
+        source = 'web-chrome';
+      } else if (ua.includes('firefox')) {
+        source = 'web-firefox';
+      } else if (ua.includes('safari') && !ua.includes('chrome')) {
+        source = 'web-safari';
+      } else if (ua.includes('edg')) {
+        source = 'web-edge';
+      }
+    }
+    // API clients
+    else if (ua.includes('postman')) {
+      source = 'postman';
+      platform_type = 'api-client';
+    } else if (ua.includes('insomnia')) {
+      source = 'insomnia';
+      platform_type = 'api-client';
+    }
+
+    // Extrair versão do app se disponível
+    let app_version = 'unknown';
+    const versionMatch = ua.match(/encontrarapp\/([\d.]+)/i);
+    if (versionMatch) {
+      app_version = versionMatch[1];
+    }
+
+    return {
+      source: source,
+      details: {
+        user_agent: userAgent,
+        platform_type: platform_type,
+        app_version: app_version,
+        ip_address: request.ip || request.connection?.remoteAddress,
+        referer: request.headers?.['referer'] || request.headers?.['origin'],
+      },
+    };
   }
 }

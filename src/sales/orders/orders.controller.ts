@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import { Role } from '../../users/models/role.enum';
 import { OrdersService } from './orders.service';
@@ -28,6 +29,7 @@ import {
 } from '@nestjs/swagger';
 import { Order } from './models/order.entity';
 import { OrderFilterDto } from './dto/order-filter.dto';
+import { Request } from 'express';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -41,8 +43,9 @@ export class OrdersController {
   async createOrder(
     @ReqUser() user: User | null,
     @Body() body: OrderCreateDto,
+    @Req() request: Request,
   ): Promise<Order> {
-    return await this.ordersService.createOrder(user?.id ?? null, body);
+    return await this.ordersService.createOrder(user?.id ?? null, body, false, request);
   }
 
   @Post('/notifyShopkeepersOnOrder')

@@ -78,6 +78,12 @@ export class Order {
   @Column({ nullable: true })
   message?: string;
 
+  @Column({ type: 'varchar', length: 50, default: 'unknown' })
+  source: string;
+
+  @Column({ type: 'json', nullable: true })
+  source_details?: any;
+
   @OneToOne(() => Return, (r) => r.order, {
     nullable: true,
   })
