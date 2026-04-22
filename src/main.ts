@@ -36,29 +36,56 @@ async function bootstrap() {
     if (isImageRoute) {
       // Obter a origem da requisição
       const origin = req.headers.origin;
+      const referer = req.headers.referer;
       
-      console.log(`[IMAGE CORS] Request to ${req.path} from origin: ${origin || 'none'}`);
+      // console.log(`[IMAGE CORS] Request to ${req.path} from origin: ${origin || 'none'}, referer: ${referer || 'none'}`);
       
-      // Headers CORS permissivos para imagens
-      // Se houver origem, usar ela; senão usar *
+      // Estratégia de CORS para imagens:
+      // 1. Se há origin header, usar ele com credentials
+      // 2. Se não há origin mas há referer, extrair origin do referer
+      // 3. Se não há nenhum, usar * sem credentials (requisições diretas)
+      
+      let allowOrigin = '*';
+      let allowCredentials = false;
+      
       if (origin) {
-        res.header('Access-Control-Allow-Origin', origin);
+        // Caso 1: Origin header presente (requisições AJAX)
+        allowOrigin = origin;
+        allowCredentials = true;
+      } else if (referer) {
+        // Caso 2: Sem origin mas com referer (algumas requisições de imagem)
+        try {
+          const refererUrl = new URL(referer);
+          allowOrigin = `${refererUrl.protocol}//${refererUrl.host}`;
+          allowCredentials = true;
+        } catch (e) {
+          // Se falhar ao parsear referer, usar *
+          allowOrigin = '*';
+          allowCredentials = false;
+        }
+      }
+      // Caso 3: Sem origin nem referer, já está com * e false
+      
+      // Definir headers CORS
+      res.header('Access-Control-Allow-Origin', allowOrigin);
+      if (allowCredentials) {
         res.header('Access-Control-Allow-Credentials', 'true');
-      } else {
-        res.header('Access-Control-Allow-Origin', '*');
       }
       
       res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
       res.header('Access-Control-Max-Age', '86400');
       res.header('Cross-Origin-Resource-Policy', 'cross-origin');
-      res.header('Vary', 'Origin'); // Importante para cache correto
       
-      console.log(`[IMAGE CORS] Headers set - Origin: ${res.getHeader('Access-Control-Allow-Origin')}, Credentials: ${res.getHeader('Access-Control-Allow-Credentials')}`);
+      if (allowOrigin !== '*') {
+        res.header('Vary', 'Origin'); // Importante para cache correto quando não é *
+      }
+      
+      // console.log(`[IMAGE CORS] Headers set - Origin: ${allowOrigin}, Credentials: ${allowCredentials}`);
       
       // Responder imediatamente a OPTIONS
       if (req.method === 'OPTIONS') {
-        console.log('[IMAGE CORS] Responding to OPTIONS preflight');
+        // console.log('[IMAGE CORS] Responding to OPTIONS preflight');
         return res.sendStatus(204);
       }
     }
