@@ -47,4 +47,13 @@ export class OrderDelivery {
 
   @Column({ type: 'double precision', nullable: true })
   price?: number;
+
+  @Column({ type: 'varchar', length: 20, default: 'standard' })
+  delivery_option: 'standard' | 'scheduled';
+
+  @Column({ type: 'date', nullable: true })
+  scheduled_date?: Date;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  scheduled_time?: string;
 }

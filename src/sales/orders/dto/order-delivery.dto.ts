@@ -5,6 +5,9 @@ import {
   IsOptional,
   IsPostalCode,
   IsString,
+  IsIn,
+  IsDateString,
+  Matches,
 } from 'class-validator';
 
 export class OrderDeliveryDto {
@@ -36,4 +39,19 @@ export class OrderDeliveryDto {
   @IsOptional()
   @IsInt()
   addressId?: number;
+
+  @IsOptional()
+  @IsIn(['standard', 'scheduled'])
+  delivery_option?: 'standard' | 'scheduled';
+
+  @IsOptional()
+  @IsDateString()
+  scheduled_date?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{2}:\d{2} - \d{2}:\d{2}$/, {
+    message: 'Formato de horário inválido. Use: HH:MM - HH:MM',
+  })
+  scheduled_time?: string;
 }
