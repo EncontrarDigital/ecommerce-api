@@ -132,7 +132,7 @@ export class PromotionsService {
     
     // Check if product is already in this promotion
     if (promotion.products.some((p) => p.id === product.id)) {
-      throw new ConflictError('Product is already in this promotion');
+      throw new ConflictError('product', 'promotion', promotion.name);
     }
     
     // Check if product is already in another active promotion
@@ -146,7 +146,9 @@ export class PromotionsService {
       
       if (otherActivePromotions.length > 0) {
         throw new ConflictError(
-          `Product is already in active promotion: "${otherActivePromotions[0].name}"`
+          'product',
+          'activePromotion',
+          otherActivePromotions[0].name,
         );
       }
     }
