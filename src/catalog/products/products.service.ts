@@ -1,7 +1,7 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './models/product.entity';
-import { In, LessThan, Repository, FindOptionsWhere, Like } from 'typeorm';
+import { In, LessThan, Repository, FindOptionsWhere, Like, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { ProductCreateDto } from './dto/product-create.dto';
 import { ProductUpdateDto } from './dto/product-update.dto';
 import { Attribute } from './models/attribute.entity';
@@ -13,6 +13,7 @@ import { Shop } from '../shops/models/shop.entity';
 import { User } from 'src/users/models/user.entity';
 import { ShopsService } from '../shops/shops.service';
 import { ProductFilterDto } from './dto/product-filter.dto';
+import { Promotion } from '../promotions/models/promotion.entity';
 
 @Injectable()
 export class ProductsService {
@@ -30,6 +31,9 @@ export class ProductsService {
 
     @Inject(forwardRef(() => ShopsService))
     private readonly shopsService: ShopsService,
+
+    @InjectRepository(Promotion)
+    private readonly promotionsRepository: Repository<Promotion>,
   ) { }
 
   async getProducts(
@@ -93,7 +97,8 @@ export class ProductsService {
       }
     }
 
-    return products;
+    // ✅ Enrich products with active promotions
+    return this.enrichProductsWithPromotions(products);
   }
 
   async getProductsByIds(ids: number[]): Promise<Product[]> {
@@ -139,7 +144,9 @@ export class ProductsService {
       product.price = Math.round(product.purchasePrice * 1.1);
     }
 
-    return product;
+    // ✅ Enrich product with active promotion
+    const enriched = await this.enrichProductsWithPromotions([product]);
+    return enriched[0];
   }
   
 
@@ -382,5 +389,71 @@ export class ProductsService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  /**
+   * Enrich products with active promotion information
+   * Calculates promotional prices and adds promotion metadata
+   */
+  async enrichProductsWithPromotions(products: Product[]): Promise<Product[]> {
+    if (products.length === 0) {
+      return products;
+    }
+
+    const currentDate = new Date();
+    const productIds = products.map(p => p.id);
+    
+    // Fetch all active promotions that contain these products
+    const activePromotions = await this.promotionsRepository
+      .createQueryBuilder('promotion')
+      .leftJoinAndSelect('promotion.products', 'product')
+      .where('promotion.isActive = :isActive', { isActive: true })
+      .andWhere('promotion.startDate <= :currentDate', { currentDate })
+      .andWhere('promotion.endDate >= :currentDate', { currentDate })
+      .andWhere('product.id IN (:...productIds)', { productIds })
+      .getMany();
+
+    // Create map of product -> promotion
+    const productPromotionMap = new Map<number, Promotion>();
+    for (const promotion of activePromotions) {
+      for (const product of promotion.products) {
+        // If product already has a promotion, keep the first one (or apply priority rule)
+        if (!productPromotionMap.has(product.id)) {
+          productPromotionMap.set(product.id, promotion);
+        }
+      }
+    }
+
+    // Enrich products with promotion information
+    return products.map(product => {
+      const promotion = productPromotionMap.get(product.id);
+      
+      if (promotion) {
+        const discountDecimal = Number(promotion.discount) / 100;
+        const promotionalPrice = product.price * (1 - discountDecimal);
+        
+        return {
+          ...product,
+          hasActivePromotion: true,
+          originalPrice: product.price,
+          promotionalPrice: Math.round(promotionalPrice * 100) / 100,
+          discountPercentage: Number(promotion.discount),
+          activePromotion: {
+            id: promotion.id,
+            name: promotion.name,
+            slug: promotion.slug,
+            endDate: promotion.endDate,
+          },
+        };
+      }
+      
+      return {
+        ...product,
+        hasActivePromotion: false,
+        originalPrice: product.price,
+        promotionalPrice: product.price,
+        discountPercentage: 0,
+      };
+    });
   }
 }

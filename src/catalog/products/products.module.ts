@@ -11,10 +11,11 @@ import { ProductsImporter } from './products.importer';
 import { Shop } from '../shops/models/shop.entity';
 import { User } from 'src/users/models/user.entity';
 import { ShopsModule } from '../shops/shops.module';
+import { Promotion } from '../promotions/models/promotion.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Product, Attribute, User]),
+    TypeOrmModule.forFeature([Product, Attribute, User, Promotion]),
     ProductPhotosModule,
     AttributeTypesModule,
     ShopsModule,

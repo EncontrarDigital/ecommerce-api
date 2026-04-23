@@ -4,6 +4,7 @@ import { In, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { Promotion } from './models/promotion.entity';
 import { NotFoundError } from '../../errors/not-found.error';
 import { NotRelatedError } from '../../errors/not-related.error';
+import { ConflictError } from '../../errors/conflict.error';
 import { PromotionCreateDto } from './dto/promotion-create.dto';
 import { PromotionUpdateDto } from './dto/promotion-update.dto';
 import { ProductsService } from '../products/products.service';
@@ -128,6 +129,28 @@ export class PromotionsService {
   async addPromotionProduct(id: number, productId: number): Promise<Product> {
     const product = await this.productsService.getProduct(productId);
     const promotion = await this.getPromotion(id, true);
+    
+    // Check if product is already in this promotion
+    if (promotion.products.some((p) => p.id === product.id)) {
+      throw new ConflictError('Product is already in this promotion');
+    }
+    
+    // Check if product is already in another active promotion
+    if (promotion.isActive) {
+      const activePromotions = await this.getActivePromotionsForProduct(
+        new Date(),
+        productId,
+      );
+      
+      const otherActivePromotions = activePromotions.filter(p => p.id !== id);
+      
+      if (otherActivePromotions.length > 0) {
+        throw new ConflictError(
+          `Product is already in active promotion: "${otherActivePromotions[0].name}"`
+        );
+      }
+    }
+    
     promotion.products.push(product);
     await this.promotionsRepository.save(promotion);
     return product;
@@ -171,5 +194,23 @@ export class PromotionsService {
       select: ['id'],
     });
     return promotions.map((p) => p.id);
+  }
+
+  async getMainActivePromotion(currentDate: Date): Promise<Promotion | null> {
+    const promotions = await this.getActivePromotions(currentDate);
+    
+    if (promotions.length === 0) {
+      return null;
+    }
+    
+    // Return the promotion with most products or the most recent one
+    return promotions.sort((a, b) => {
+      // Sort by number of products (descending)
+      const diff = (b.products?.length || 0) - (a.products?.length || 0);
+      if (diff !== 0) return diff;
+      
+      // If tie, sort by creation date (most recent first)
+      return b.created.getTime() - a.created.getTime();
+    })[0];
   }
 } 

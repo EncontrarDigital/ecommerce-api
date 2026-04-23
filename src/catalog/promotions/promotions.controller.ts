@@ -53,6 +53,12 @@ export class PromotionsController {
     return this.promotionsService.getActivePromotions(new Date());
   }
 
+  @Get('/active/main')
+  @ApiOkResponse({ type: Promotion, description: 'Main active promotion for banner' })
+  async getMainActivePromotion(): Promise<Promotion | null> {
+    return this.promotionsService.getMainActivePromotion(new Date());
+  }
+
   @Get('/:id')
   @ApiNotFoundResponse({ description: 'Promotion not found' })
   @ApiOkResponse({ type: Promotion, description: 'Promotion with given id' })

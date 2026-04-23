@@ -74,4 +74,16 @@ export class Product {
   
   @Column({ nullable: true })
   shopId: number;
+
+  // Virtual fields for promotions (not stored in database)
+  hasActivePromotion?: boolean;
+  promotionalPrice?: number;
+  originalPrice?: number;
+  discountPercentage?: number;
+  activePromotion?: {
+    id: number;
+    name: string;
+    slug: string;
+    endDate: Date;
+  };
 }
