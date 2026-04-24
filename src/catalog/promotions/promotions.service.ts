@@ -119,10 +119,38 @@ export class PromotionsService {
       throw new NotFoundError('promotion', 'id', id.toString());
     }
     
+    let products = promotion.products;
+    
     if (!withHidden) {
-      return promotion.products.filter((product) => product.visible);
+      products = products.filter((product) => product.visible);
     }
-    return promotion.products;
+    
+    // Enrich products with promotion information
+    const currentDate = new Date();
+    const isPromotionActive = 
+      promotion.isActive &&
+      new Date(promotion.startDate) <= currentDate &&
+      new Date(promotion.endDate) >= currentDate;
+    
+    if (isPromotionActive) {
+      const discountDecimal = Number(promotion.discount) / 100;
+      
+      products = products.map(product => ({
+        ...product,
+        hasActivePromotion: true,
+        originalPrice: product.price,
+        promotionalPrice: Math.round(product.price * (1 - discountDecimal) * 100) / 100,
+        discountPercentage: Number(promotion.discount),
+        activePromotion: {
+          id: promotion.id,
+          name: promotion.name,
+          slug: promotion.slug,
+          endDate: promotion.endDate,
+        },
+      }));
+    }
+    
+    return products;
   }
 
   async getPromotionProductsBySlug(
