@@ -63,7 +63,7 @@ export class PromotionsController {
   @ApiNotFoundResponse({ description: 'Promotion not found' })
   @ApiOkResponse({ type: Promotion, description: 'Promotion with given id' })
   async getPromotion(@Param('id', ParseIntPipe) id: number): Promise<Promotion> {
-    return await this.promotionsService.getPromotion(id);
+    return await this.promotionsService.getPromotion(id, true);
   }
 
   @Patch('/:id')

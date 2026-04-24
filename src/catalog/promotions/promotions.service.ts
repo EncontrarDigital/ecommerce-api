@@ -38,9 +38,11 @@ export class PromotionsService {
   }
 
   async getPromotion(id: number, withProducts = false): Promise<Promotion> {
+    const relations = withProducts ? ['products', 'products.shop'] : [];
+    
     const promotion = await this.promotionsRepository.findOne({
       where: { id },
-      relations: [...(withProducts ? ['products'] : [])],
+      relations,
     });
     if (!promotion) {
       throw new NotFoundError('promotion', 'id', id.toString());
@@ -108,7 +110,15 @@ export class PromotionsService {
     id: number,
     withHidden?: boolean,
   ): Promise<Product[]> {
-    const promotion = await this.getPromotion(id, true);
+    const promotion = await this.promotionsRepository.findOne({
+      where: { id },
+      relations: ['products', 'products.shop'],
+    });
+    
+    if (!promotion) {
+      throw new NotFoundError('promotion', 'id', id.toString());
+    }
+    
     if (!withHidden) {
       return promotion.products.filter((product) => product.visible);
     }
