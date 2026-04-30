@@ -36,6 +36,7 @@ import { SplashScreensModule } from './splash-screens/splash-screens.module';
 import { BannersModule } from './banners/banners.module';
 import { HealthModule } from './health/health.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { DeliverySettingsModule } from './delivery-settings/delivery-settings.module';
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     BannersModule,
     HealthModule,
     WebhooksModule,
+    DeliverySettingsModule,
   ],
   controllers: [],
   providers: [

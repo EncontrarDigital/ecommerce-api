@@ -19,4 +19,20 @@ export class CreateAddressDto {
   @IsOptional()
   @IsNumber()
   price?: number;
+
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  radius_km?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  is_zone?: boolean;
 } 

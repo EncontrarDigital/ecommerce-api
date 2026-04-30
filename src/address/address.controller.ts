@@ -7,8 +7,10 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
+  ParseBoolPipe,
 } from '@nestjs/common';
-import { AddressService } from './address.service';
+import { AddressService, AddressFilters } from './address.service';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
 import { Address } from './models/address.entity';
@@ -17,6 +19,7 @@ import {
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 
@@ -27,8 +30,27 @@ export class AddressController {
 
   @Get()
   @ApiOkResponse({ type: [Address], description: 'List of all addresses' })
-  async getAddresses(): Promise<Address[]> {
-    return this.addressService.getAddresses();
+  @ApiQuery({ name: 'search', required: false, description: 'Search by name' })
+  @ApiQuery({ name: 'hasGps', required: false, description: 'Filter by GPS coordinates' })
+  @ApiQuery({ name: 'isZone', required: false, description: 'Filter by zone status' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number' })
+  @ApiQuery({ name: 'perPage', required: false, description: 'Items per page' })
+  async getAddresses(
+    @Query('search') search?: string,
+    @Query('hasGps') hasGps?: string,
+    @Query('isZone') isZone?: string,
+    @Query('page') page?: string,
+    @Query('perPage') perPage?: string,
+  ) {
+    const filters: AddressFilters = {
+      search,
+      hasGps: hasGps === 'true',
+      isZone: isZone === 'true',
+      page: page ? parseInt(page, 10) : undefined,
+      perPage: perPage ? parseInt(perPage, 10) : undefined,
+    };
+
+    return this.addressService.getAddresses(filters);
   }
 
   @Get('/:id')

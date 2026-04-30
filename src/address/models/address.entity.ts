@@ -30,6 +30,39 @@ export class Address {
   })
   price?: number;
 
+  @Column({ 
+    type: 'decimal', 
+    precision: 10, 
+    scale: 8, 
+    nullable: true,
+    comment: 'Latitude da zona de entrega'
+  })
+  latitude?: number;
+
+  @Column({ 
+    type: 'decimal', 
+    precision: 11, 
+    scale: 8, 
+    nullable: true,
+    comment: 'Longitude da zona de entrega'
+  })
+  longitude?: number;
+
+  @Column({ 
+    type: 'int', 
+    nullable: true, 
+    default: 5,
+    comment: 'Raio de cobertura em km'
+  })
+  radius_km?: number;
+
+  @Column({ 
+    type: 'boolean', 
+    default: false,
+    comment: 'Se é uma zona de entrega com coordenadas'
+  })
+  is_zone: boolean;
+
   @ManyToOne(() => Address, (address) => address.childAddresses, {
     onDelete: 'SET NULL',
     nullable: true,
