@@ -50,21 +50,36 @@ export class AddressController {
       perPage: perPage ? parseInt(perPage, 10) : undefined,
     };
 
-    return this.addressService.getAddresses(filters);
+    const result = await this.addressService.getAddresses(filters);
+    
+    // Retornar no formato esperado pelo frontend Angular
+    return {
+      success: true,
+      data: result,
+    };
   }
 
   @Get('/:id')
   @ApiNotFoundResponse({ description: 'Address not found' })
   @ApiOkResponse({ type: Address, description: 'Address with given id' })
-  async getAddress(@Param('id', ParseIntPipe) id: number): Promise<Address> {
-    return await this.addressService.getAddress(id);
+  async getAddress(@Param('id', ParseIntPipe) id: number) {
+    const address = await this.addressService.getAddress(id);
+    return {
+      success: true,
+      data: address,
+    };
   }
 
   @Post()
   @ApiCreatedResponse({ type: Address, description: 'Address created' })
   @ApiBadRequestResponse({ description: 'Invalid address data' })
-  async createAddress(@Body() address: CreateAddressDto): Promise<Address> {
-    return await this.addressService.createAddress(address);
+  async createAddress(@Body() address: CreateAddressDto) {
+    const created = await this.addressService.createAddress(address);
+    return {
+      success: true,
+      data: created,
+      message: 'Address created successfully',
+    };
   }
 
   @Patch('/:id')
@@ -74,14 +89,23 @@ export class AddressController {
   async updateAddress(
     @Param('id', ParseIntPipe) id: number,
     @Body() address: UpdateAddressDto,
-  ): Promise<Address> {
-    return await this.addressService.updateAddress(id, address);
+  ) {
+    const updated = await this.addressService.updateAddress(id, address);
+    return {
+      success: true,
+      data: updated,
+      message: 'Address updated successfully',
+    };
   }
 
   @Delete('/:id')
   @ApiOkResponse({ type: Address, description: 'Address deleted' })
   @ApiNotFoundResponse({ description: 'Address not found' })
-  async deleteAddress(@Param('id', ParseIntPipe) id: number): Promise<void> {
+  async deleteAddress(@Param('id', ParseIntPipe) id: number) {
     await this.addressService.deleteAddress(id);
+    return {
+      success: true,
+      message: 'Address deleted successfully',
+    };
   }
 } 

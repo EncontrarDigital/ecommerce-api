@@ -25,8 +25,12 @@ export class DeliverySettingsController {
     type: [DeliverySetting],
     description: 'List of all delivery settings',
   })
-  async getAllSettings(): Promise<DeliverySetting[]> {
-    return this.deliverySettingsService.getAllSettings();
+  async getAllSettings() {
+    const settings = await this.deliverySettingsService.getAllSettings();
+    return {
+      success: true,
+      data: settings,
+    };
   }
 
   @Get('/:key')
@@ -35,8 +39,12 @@ export class DeliverySettingsController {
     type: DeliverySetting,
     description: 'Delivery setting with given key',
   })
-  async getSettingByKey(@Param('key') key: string): Promise<DeliverySetting> {
-    return this.deliverySettingsService.getSettingByKey(key);
+  async getSettingByKey(@Param('key') key: string) {
+    const setting = await this.deliverySettingsService.getSettingByKey(key);
+    return {
+      success: true,
+      data: setting,
+    };
   }
 
   @Put('/:key')
@@ -49,7 +57,12 @@ export class DeliverySettingsController {
   async updateSetting(
     @Param('key') key: string,
     @Body() updateDto: UpdateDeliverySettingDto,
-  ): Promise<DeliverySetting> {
-    return this.deliverySettingsService.updateSetting(key, updateDto);
+  ) {
+    const updated = await this.deliverySettingsService.updateSetting(key, updateDto);
+    return {
+      success: true,
+      data: updated,
+      message: 'Setting updated successfully',
+    };
   }
 }
