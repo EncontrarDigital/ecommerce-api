@@ -38,6 +38,8 @@ import { HealthModule } from './health/health.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { DeliverySettingsModule } from './delivery-settings/delivery-settings.module';
 
+import { SearchTagsModule } from './search-tags/search-tags.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -88,6 +90,7 @@ import { DeliverySettingsModule } from './delivery-settings/delivery-settings.mo
     HealthModule,
     WebhooksModule,
     DeliverySettingsModule,
+    SearchTagsModule,
   ],
   controllers: [],
   providers: [
