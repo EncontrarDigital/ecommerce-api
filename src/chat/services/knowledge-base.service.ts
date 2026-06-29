@@ -125,8 +125,6 @@ export class KnowledgeBaseService {
 
   async searchProducts(keywords: string[]): Promise<{ text: string; products: any[]; keywords?: string[]; searchType?: 'products' } | null> {
     try {
-      console.log('🔍 [KnowledgeBase] ========================================');
-      console.log('🔍 [KnowledgeBase] Searching products for keywords:', keywords);
       
       if (keywords.length === 0) {
         console.log('🔍 [KnowledgeBase] ❌ No keywords provided');
@@ -176,18 +174,11 @@ export class KnowledgeBaseService {
       queryBuilder.addOrderBy('product.id', 'DESC');
 
       // Log the SQL query for debugging with parameters
-      console.log('🔍 [KnowledgeBase] SQL Query:', queryBuilder.getSql());
       console.log('🔍 [KnowledgeBase] Parameters:', queryBuilder.getParameters());
 
       const products = await queryBuilder
         .limit(10)
         .getMany();
-
-      console.log('🔍 [KnowledgeBase] SQL Query executed');
-      console.log('🔍 [KnowledgeBase] Found products:', products.length);
-      if (products.length > 0) {
-        console.log('🔍 [KnowledgeBase] Products found:', products.map(p => ({ id: p.id, name: p.name })));
-      }
 
       if (products.length === 0) {
         console.log('🔍 [KnowledgeBase] ❌ No products found for keywords:', keywords);
@@ -200,18 +191,14 @@ export class KnowledgeBaseService {
         new Map(products.map(p => [p.id, p])).values()
       );
 
-      console.log('🔍 [KnowledgeBase] Unique products after dedup:', uniqueProducts.length);
-
+   
       // Simplified response - just the count, no list (cards will show the products)
       let response = `Encontrei ${uniqueProducts.length} produto(s) 🛍️`;
       
       if (uniqueProducts.length > 5) {
         response += `\n\nMostrando os primeiros 5 resultados. Role para ver mais! ⬇️`;
       }
-      
-      console.log('🔍 [KnowledgeBase] ✅ Returning', uniqueProducts.length, 'products');
-      console.log('🔍 [KnowledgeBase] ========================================');
-      
+          
       // Return both text and structured product data
       return {
         text: response,
@@ -244,9 +231,7 @@ export class KnowledgeBaseService {
   }
 
   async searchShops(keywords: string[]): Promise<string | null> {
-    try {
-      console.log('[KnowledgeBase] Searching shops for keywords:', keywords);
-      
+    try {  
       // Build OR conditions for each keyword
       const whereConditions = keywords.flatMap(keyword => [
         { shopName: ILike(`%${keyword}%`) },
@@ -257,8 +242,6 @@ export class KnowledgeBaseService {
         where: whereConditions,
         take: 10,
       });
-
-      console.log('[KnowledgeBase] Found shops:', shops.length);
 
       if (shops.length === 0) return null;
 
@@ -302,11 +285,7 @@ export class KnowledgeBaseService {
     searchType?: 'products' | 'shops' | 'promotions' | 'expensive' | 'cheap';
   } | null> {
     try {
-      console.log('🔍 [KnowledgeBase] ========================================');
-      console.log('🔍 [KnowledgeBase] Original query:', query);
-      console.log('🔍 [KnowledgeBase] Context keywords:', contextKeywords);
-      console.log('🔍 [KnowledgeBase] Context product IDs:', contextProductIds);
-
+  
       const queryLower = query.toLowerCase();
 
       // Check if user is asking about promotions
@@ -314,7 +293,6 @@ export class KnowledgeBaseService {
       const isPromotionQuery = promotionKeywords.some(keyword => queryLower.includes(keyword));
 
       if (isPromotionQuery) {
-        console.log('🎉 [KnowledgeBase] Detected promotion query');
         const promotionResult = await this.searchPromotions();
         if (promotionResult) {
           return {
@@ -329,14 +307,11 @@ export class KnowledgeBaseService {
       const isExpensiveQuery = expensiveKeywords.some(keyword => queryLower.includes(keyword));
 
       if (isExpensiveQuery) {
-        console.log('💎 [KnowledgeBase] Detected expensive query - searching by highest price');
         
         // USE CONTEXT: if we have context keywords/products, search within them
         if (contextKeywords && contextKeywords.length > 0) {
-          console.log('💎 [KnowledgeBase] Using context keywords:', contextKeywords);
           return await this.searchMostExpensive(contextKeywords);
         } else if (contextProductIds && contextProductIds.length > 0) {
-          console.log('💎 [KnowledgeBase] Using context product IDs:', contextProductIds);
           return await this.searchMostExpensiveFromIds(contextProductIds);
         } else {
           return await this.searchMostExpensive();
@@ -348,14 +323,11 @@ export class KnowledgeBaseService {
       const isCheapQuery = cheapKeywords.some(keyword => queryLower.includes(keyword));
 
       if (isCheapQuery) {
-        console.log('💰 [KnowledgeBase] Detected cheap query - searching by lowest price');
         
         // USE CONTEXT: if we have context keywords/products, search within them
         if (contextKeywords && contextKeywords.length > 0) {
-          console.log('💰 [KnowledgeBase] Using context keywords:', contextKeywords);
           return await this.searchCheapest(contextKeywords);
         } else if (contextProductIds && contextProductIds.length > 0) {
-          console.log('💰 [KnowledgeBase] Using context product IDs:', contextProductIds);
           return await this.searchCheapestFromIds(contextProductIds);
         } else {
           return await this.searchCheapest();
@@ -381,43 +353,31 @@ export class KnowledgeBaseService {
         .filter(word => !stopWords.includes(word))
         .filter((word, index, self) => self.indexOf(word) === index); // Remove duplicates
 
-      console.log('🔍 [KnowledgeBase] Keywords extracted:', keywords);
-      console.log('🔍 [KnowledgeBase] Keywords count:', keywords.length);
-
       // If we have ANY keywords, search
       if (keywords.length > 0) {
         // Try products first
         const productResult = await this.searchProducts(keywords);
         if (productResult) {
-          console.log('🔍 [KnowledgeBase] ✅ Found products');
-          console.log('🔍 [KnowledgeBase] ========================================');
-          return productResult;
+           return productResult;
         }
 
         // Then try shops
         const shopResult = await this.searchShops(keywords);
         if (shopResult) {
-          console.log('🔍 [KnowledgeBase] ✅ Found shops');
-          console.log('🔍 [KnowledgeBase] ========================================');
-          return { text: shopResult };
+           return { text: shopResult };
         }
       } else {
         // No keywords extracted - try searching with original query as single keyword
-        console.log('🔍 [KnowledgeBase] No keywords extracted, using original query');
         const singleKeyword = query.toLowerCase().trim();
         
         if (singleKeyword.length >= 2) {
           const productResult = await this.searchProducts([singleKeyword]);
           if (productResult) {
-            console.log('🔍 [KnowledgeBase] ✅ Found products with original query');
-            console.log('🔍 [KnowledgeBase] ========================================');
             return productResult;
           }
 
           const shopResult = await this.searchShops([singleKeyword]);
           if (shopResult) {
-            console.log('🔍 [KnowledgeBase] ✅ Found shops with original query');
-            console.log('🔍 [KnowledgeBase] ========================================');
             return { text: shopResult };
           }
         }
@@ -434,11 +394,6 @@ export class KnowledgeBaseService {
 
   async searchMostExpensive(keywords?: string[]): Promise<{ text: string; products: any[]; searchType: 'expensive' } | null> {
     try {
-      console.log('💎 [KnowledgeBase] ========================================');
-      console.log('💎 [KnowledgeBase] Searching for most expensive products');
-      if (keywords) {
-        console.log('💎 [KnowledgeBase] Filtering by keywords:', keywords);
-      }
       
       const queryBuilder = this.productRepository
         .createQueryBuilder('product')
@@ -463,7 +418,6 @@ export class KnowledgeBaseService {
         .limit(10)
         .getMany();
 
-      console.log('💎 [KnowledgeBase] Found products:', products.length);
       if (products.length > 0) {
         console.log('💎 [KnowledgeBase] Top 3 prices:', products.slice(0, 3).map(p => ({ name: p.name, price: p.price })));
       }
@@ -475,9 +429,6 @@ export class KnowledgeBaseService {
       }
 
       const response = `Encontrei ${products.length} produto(s) 💎\n\nOrdenados do mais caro para o mais barato! 📊`;
-      
-      console.log('💎 [KnowledgeBase] ✅ Returning', products.length, 'products');
-      console.log('💎 [KnowledgeBase] ========================================');
       
       return {
         text: response,
@@ -509,8 +460,6 @@ export class KnowledgeBaseService {
 
   async searchMostExpensiveFromIds(productIds: number[]): Promise<{ text: string; products: any[]; searchType: 'expensive' } | null> {
     try {
-      console.log('💎 [KnowledgeBase] ========================================');
-      console.log('💎 [KnowledgeBase] Searching for most expensive from specific IDs:', productIds);
       
       const products = await this.productRepository
         .createQueryBuilder('product')
@@ -532,9 +481,6 @@ export class KnowledgeBaseService {
       }
 
       const response = `Encontrei ${products.length} produto(s) 💎\n\nOrdenados do mais caro para o mais barato! 📊`;
-      
-      console.log('💎 [KnowledgeBase] ✅ Returning', products.length, 'products');
-      console.log('💎 [KnowledgeBase] ========================================');
       
       return {
         text: response,
@@ -566,8 +512,6 @@ export class KnowledgeBaseService {
 
   async searchCheapest(keywords?: string[]): Promise<{ text: string; products: any[]; searchType: 'cheap' } | null> {
     try {
-      console.log('💰 [KnowledgeBase] ========================================');
-      console.log('💰 [KnowledgeBase] Searching for cheapest products');
       if (keywords) {
         console.log('💰 [KnowledgeBase] Filtering by keywords:', keywords);
       }
@@ -595,7 +539,6 @@ export class KnowledgeBaseService {
         .limit(10)
         .getMany();
 
-      console.log('💰 [KnowledgeBase] Found products:', products.length);
       if (products.length > 0) {
         console.log('💰 [KnowledgeBase] Top 3 prices:', products.slice(0, 3).map(p => ({ name: p.name, price: p.price })));
       }
@@ -607,9 +550,6 @@ export class KnowledgeBaseService {
       }
 
       const response = `Encontrei ${products.length} produto(s) 💰\n\nOrdenados do mais barato para o mais caro! 📊`;
-      
-      console.log('💰 [KnowledgeBase] ✅ Returning', products.length, 'products');
-      console.log('💰 [KnowledgeBase] ========================================');
       
       return {
         text: response,

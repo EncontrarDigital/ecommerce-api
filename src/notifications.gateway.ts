@@ -8,7 +8,10 @@ import {
     SubscribeMessage,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { Injectable } from '@nestjs/common';
+import { UsersService } from './users/users.service';
 
+@Injectable()
 @WebSocketGateway({
     cors: {
         origin: [
@@ -39,20 +42,36 @@ export class NotificationsGateway
     server: Server;
 
     private clients: Map<number, string> = new Map(); // userId -> socket.id
+    private userEmails: Map<number, string> = new Map(); // userId -> email
+
+    constructor(private usersService: UsersService) {}
 
     afterInit(server: Server) {
         console.log('🚀 WebSocket server initialized for notifications');
         console.log('📡 Transport: polling only (optimized for Railway)');
     }
 
-    handleConnection(client: Socket) {
+    async handleConnection(client: Socket) {
         const userId = Number(client.handshake.query.userId);
         console.log('🔌 Connection attempt from userId:', userId, 'transport:', client.conn.transport.name);
         
         if (userId && !isNaN(userId)) {
-            this.clients.set(userId, client.id);
-            console.log(`✅ User ${userId} connected with socket ${client.id}`);
-            console.log(`📊 Total connected clients: ${this.clients.size}`);
+            try {
+                // Buscar o email do usuário
+                const user = await this.usersService.getUser(userId);
+                const userEmail = user?.email || `user-${userId}`;
+                
+                this.clients.set(userId, client.id);
+                this.userEmails.set(userId, userEmail);
+                
+                console.log(`✅ User ${userEmail} (ID: ${userId}) connected with socket ${client.id}`);
+                console.log(`📊 Total connected clients: ${this.clients.size}`);
+            } catch (error) {
+                console.error(`❌ Error fetching user ${userId}:`, error.message);
+                this.clients.set(userId, client.id);
+                console.log(`✅ User ID ${userId} connected with socket ${client.id}`);
+                console.log(`📊 Total connected clients: ${this.clients.size}`);
+            }
         } else {
             console.warn('⚠️ Connection attempt without valid userId');
         }
@@ -61,21 +80,24 @@ export class NotificationsGateway
     handleDisconnect(client: Socket) {
         const userId = [...this.clients.entries()].find(([, id]) => id === client.id)?.[0];
         if (userId) {
+            const userEmail = this.userEmails.get(userId) || `user-${userId}`;
             this.clients.delete(userId);
-            console.log(`❌ User ${userId} disconnected`);
+            this.userEmails.delete(userId);
+            console.log(`❌ User ${userEmail} (ID: ${userId}) disconnected`);
             console.log(`📊 Total connected clients: ${this.clients.size}`);
         }
     }
 
     sendNotificationToUser(userId: number, notification: any) {
         const socketId = this.clients.get(userId);
-        console.log(`📤 Attempting to send notification to user ${userId}, socket: ${socketId}`);
+        const userEmail = this.userEmails.get(userId) || `user-${userId}`;
+        console.log(`📤 Attempting to send notification to ${userEmail} (ID: ${userId}), socket: ${socketId}`);
         
         if (socketId) {
             this.server.to(socketId).emit('notification', notification);
-            console.log(`✅ Notification sent to user ${userId}`);
+            console.log(`✅ Notification sent to ${userEmail} (ID: ${userId})`);
         } else {
-            console.log(`⚠️ User ${userId} not connected, notification not sent in real-time`);
+            console.log(`⚠️ User ${userEmail} (ID: ${userId}) not connected, notification not sent in real-time`);
         }
     }
 
