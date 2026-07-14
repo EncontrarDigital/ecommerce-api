@@ -68,6 +68,21 @@ export class Product {
   @Column({ default: 0 })
   comission: number;
 
+  @Column({ 
+    type: 'varchar', 
+    length: 20, 
+    default: 'unidade',
+    comment: 'Unidade de medida: kg, g, litro, ml, unidade, pacote, caixa' 
+  })
+  unit: string;
+
+  @Column({ 
+    type: 'int', 
+    default: 1,
+    comment: 'Quantidade mínima que pode ser encomendada' 
+  })
+  minimumOrderQuantity: number;
+
   @OneToMany(() => ProductRating, (rating) => rating.product, {
     onDelete: 'CASCADE',
     cascade: true,

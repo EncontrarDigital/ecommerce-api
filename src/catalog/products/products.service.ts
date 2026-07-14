@@ -272,8 +272,17 @@ export class ProductsService {
     });
     for (const p of products) {
       const item = items.find((i) => i.product.id === p.id);
-      if (item && p.stock < item.quantity) {
-        return false;
+      if (item) {
+        // Valida stock disponível
+        if (p.stock < item.quantity) {
+          return false;
+        }
+        // Valida quantidade mínima de pedido
+        if (item.quantity < (p.minimumOrderQuantity || 1)) {
+          throw new BadRequestException(
+            `O produto "${p.name}" requer quantidade mínima de ${p.minimumOrderQuantity || 1} ${p.unit || 'unidade(s)'}.`,
+          );
+        }
       }
     }
     return true;

@@ -1,11 +1,13 @@
 import {
   IsBoolean,
+  IsIn,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   Min,
 } from 'class-validator';
+import { ProductUnit } from '../enums/product-unit.enum';
 
 export class ProductCreateDto {
   @IsString()
@@ -42,6 +44,18 @@ export class ProductCreateDto {
   @IsNumber()
   @Min(0)
   comission: number;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(Object.values(ProductUnit), {
+    message: 'Unidade inválida. Use: kg, g, mg, litro, ml, unidade, pacote, caixa, duzia, metro, cm',
+  })
+  unit?: string;
+
+  @IsNumber()
+  @Min(1, { message: 'A quantidade mínima deve ser pelo menos 1' })
+  @IsOptional()
+  minimumOrderQuantity?: number;
 
   @IsNumber()
   @IsOptional()
