@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { Product } from '../../products/models/product.entity';
 import { CategoryGroup } from './category-group.entity';
+import { CategoryPhoto } from '../category-photos/models/category-photo.entity';
 
 @Entity('categories')
 export class Category {
@@ -43,6 +44,12 @@ export class Category {
     onDelete: 'SET NULL',
   })
   childCategories: Category[];
+
+  @OneToMany(() => CategoryPhoto, (photo) => photo.category, {
+    cascade: true,
+    eager: true,
+  })
+  photos: CategoryPhoto[];
 
   @ManyToMany(
     () => CategoryGroup,

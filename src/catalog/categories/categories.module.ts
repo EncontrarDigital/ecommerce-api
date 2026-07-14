@@ -7,11 +7,13 @@ import { CategoryGroup } from './models/category-group.entity';
 import { ProductsModule } from '../products/products.module';
 import { CategoriesExporter } from './categories.exporter';
 import { CategoriesImporter } from './categories.importer';
+import { CategoryPhotosModule } from './category-photos/category-photos.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Category, CategoryGroup]),
     ProductsModule,
+    CategoryPhotosModule,
   ],
   controllers: [CategoriesController],
   providers: [CategoriesService, CategoriesExporter, CategoriesImporter],
