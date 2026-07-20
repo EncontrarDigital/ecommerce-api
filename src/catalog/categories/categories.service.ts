@@ -130,22 +130,58 @@ export class CategoriesService {
     id: number,
     withHidden?: boolean,
   ): Promise<Product[]> {
-    const category = await this.getCategory(id, false, true);
-    if (!withHidden) {
-      return category.products.filter((product) => product.visible);
+    // Get the category with its direct products
+    const category = await this.getCategory(id, true, true);
+    
+    // Collect products from this category
+    let allProducts = [...category.products];
+    
+    // If this category has child categories, get their products too
+    if (category.childCategories && category.childCategories.length > 0) {
+      for (const childCategory of category.childCategories) {
+        const childWithProducts = await this.getCategory(childCategory.id, false, true);
+        allProducts = [...allProducts, ...childWithProducts.products];
+      }
     }
-    return category.products;
+    
+    // Remove duplicates based on product ID
+    const uniqueProducts = Array.from(
+      new Map(allProducts.map(product => [product.id, product])).values()
+    );
+    
+    if (!withHidden) {
+      return uniqueProducts.filter((product) => product.visible);
+    }
+    return uniqueProducts;
   }
 
   async getCategoryProductsBySlug(
     slug: string,
     withHidden?: boolean,
   ): Promise<Product[]> {
-    const category = await this.getCategoryBySlug(slug, false, true);
-    if (!withHidden) {
-      return category.products.filter((product) => product.visible);
+    // Get the category with its direct products
+    const category = await this.getCategoryBySlug(slug, true, true);
+    
+    // Collect products from this category
+    let allProducts = [...category.products];
+    
+    // If this category has child categories, get their products too
+    if (category.childCategories && category.childCategories.length > 0) {
+      for (const childCategory of category.childCategories) {
+        const childWithProducts = await this.getCategory(childCategory.id, false, true);
+        allProducts = [...allProducts, ...childWithProducts.products];
+      }
     }
-    return category.products;
+    
+    // Remove duplicates based on product ID
+    const uniqueProducts = Array.from(
+      new Map(allProducts.map(product => [product.id, product])).values()
+    );
+    
+    if (!withHidden) {
+      return uniqueProducts.filter((product) => product.visible);
+    }
+    return uniqueProducts;
   }
 
   async addCategoryProduct(id: number, productId: number): Promise<Product> {
@@ -173,13 +209,34 @@ export class CategoriesService {
     limit: number,
     withHidden?: boolean,
   ): Promise<{ data: Product[]; total: number; page: number; limit: number; totalPages: number }> {
-    const category = await this.getCategory(id, false, true);
-    let products = withHidden ? category.products : category.products.filter((product) => product.visible);
+    // Get the category with its direct products and child categories
+    const category = await this.getCategory(id, true, true);
+    
+    // Collect products from this category
+    let allProducts = [...category.products];
+    
+    // If this category has child categories, get their products too
+    if (category.childCategories && category.childCategories.length > 0) {
+      for (const childCategory of category.childCategories) {
+        const childWithProducts = await this.getCategory(childCategory.id, false, true);
+        allProducts = [...allProducts, ...childWithProducts.products];
+      }
+    }
+    
+    // Remove duplicates based on product ID
+    const uniqueProducts = Array.from(
+      new Map(allProducts.map(product => [product.id, product])).values()
+    );
+    
+    // Filter by visibility if needed
+    let products = withHidden ? uniqueProducts : uniqueProducts.filter((product) => product.visible);
+    
     const total = products.length;
     const totalPages = Math.ceil(total / limit);
     const start = (page - 1) * limit;
     const end = start + limit;
     const data = products.slice(start, end);
+    
     return { data, total, page, limit, totalPages };
   }
 }
