@@ -143,7 +143,6 @@ export class CategoriesService {
         'products.attributes',
         'products.attributes.type',
         'products.ratings',
-        'products.activePromotion',
       ],
       order: {
         products: {
@@ -179,7 +178,6 @@ export class CategoriesService {
             'products.attributes',
             'products.attributes.type',
             'products.ratings',
-            'products.activePromotion',
           ],
         });
         
@@ -223,7 +221,6 @@ export class CategoriesService {
         'products.attributes',
         'products.attributes.type',
         'products.ratings',
-        'products.activePromotion',
       ],
       order: {
         products: {
@@ -251,7 +248,6 @@ export class CategoriesService {
             'products.attributes',
             'products.attributes.type',
             'products.ratings',
-            'products.activePromotion',
           ],
         });
         
@@ -310,7 +306,6 @@ export class CategoriesService {
         'products.attributes',
         'products.attributes.type',
         'products.ratings',
-        'products.activePromotion',
       ],
       order: {
         products: {
@@ -346,7 +341,6 @@ export class CategoriesService {
             'products.attributes',
             'products.attributes.type',
             'products.ratings',
-            'products.activePromotion',
           ],
         });
         
