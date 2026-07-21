@@ -130,17 +130,65 @@ export class CategoriesService {
     id: number,
     withHidden?: boolean,
   ): Promise<Product[]> {
-    // Get the category with its direct products
-    const category = await this.getCategory(id, true, true);
+    console.log(`🔍 [getCategoryProducts] Buscando produtos para categoria ID: ${id}`);
+    
+    // Get the category with its products and complete relations
+    const category = await this.categoriesRepository.findOne({
+      where: { id },
+      relations: [
+        'childCategories',
+        'products',
+        'products.photos',
+        'products.shop',
+        'products.attributes',
+        'products.attributes.type',
+        'products.ratings',
+        'products.activePromotion',
+      ],
+      order: {
+        products: {
+          id: 'DESC',
+        },
+      },
+    });
+
+    if (!category) {
+      throw new NotFoundError('category', 'id', id.toString());
+    }
+    
+    console.log(`📂 [getCategoryProducts] Categoria encontrada: ${category.name}`);
+    console.log(`   - Produtos diretos: ${category.products?.length || 0}`);
+    console.log(`   - Subcategorias: ${category.childCategories?.length || 0}`);
     
     // Collect products from this category
     let allProducts = [...category.products];
     
     // If this category has child categories, get their products too
     if (category.childCategories && category.childCategories.length > 0) {
+      console.log(`   🔄 Buscando produtos das subcategorias...`);
+      
       for (const childCategory of category.childCategories) {
-        const childWithProducts = await this.getCategory(childCategory.id, false, true);
-        allProducts = [...allProducts, ...childWithProducts.products];
+        console.log(`      - Subcategoria [${childCategory.id}]: ${childCategory.name}`);
+        
+        const childWithProducts = await this.categoriesRepository.findOne({
+          where: { id: childCategory.id },
+          relations: [
+            'products',
+            'products.photos',
+            'products.shop',
+            'products.attributes',
+            'products.attributes.type',
+            'products.ratings',
+            'products.activePromotion',
+          ],
+        });
+        
+        if (childWithProducts?.products) {
+          console.log(`        ✓ Encontrados ${childWithProducts.products.length} produtos`);
+          allProducts = [...allProducts, ...childWithProducts.products];
+        } else {
+          console.log(`        ⚠️  Nenhum produto encontrado`);
+        }
       }
     }
     
@@ -149,9 +197,14 @@ export class CategoriesService {
       new Map(allProducts.map(product => [product.id, product])).values()
     );
     
+    console.log(`   ✅ Total de produtos únicos: ${uniqueProducts.length}`);
+    
     if (!withHidden) {
-      return uniqueProducts.filter((product) => product.visible);
+      const visibleProducts = uniqueProducts.filter((product) => product.visible);
+      console.log(`   👁️  Produtos visíveis: ${visibleProducts.length}`);
+      return visibleProducts;
     }
+    
     return uniqueProducts;
   }
 
@@ -159,8 +212,29 @@ export class CategoriesService {
     slug: string,
     withHidden?: boolean,
   ): Promise<Product[]> {
-    // Get the category with its direct products
-    const category = await this.getCategoryBySlug(slug, true, true);
+    // Get the category with its products and complete relations
+    const category = await this.categoriesRepository.findOne({
+      where: { slug },
+      relations: [
+        'childCategories',
+        'products',
+        'products.photos',
+        'products.shop',
+        'products.attributes',
+        'products.attributes.type',
+        'products.ratings',
+        'products.activePromotion',
+      ],
+      order: {
+        products: {
+          id: 'DESC',
+        },
+      },
+    });
+
+    if (!category) {
+      throw new NotFoundError('category', 'slug', slug);
+    }
     
     // Collect products from this category
     let allProducts = [...category.products];
@@ -168,8 +242,22 @@ export class CategoriesService {
     // If this category has child categories, get their products too
     if (category.childCategories && category.childCategories.length > 0) {
       for (const childCategory of category.childCategories) {
-        const childWithProducts = await this.getCategory(childCategory.id, false, true);
-        allProducts = [...allProducts, ...childWithProducts.products];
+        const childWithProducts = await this.categoriesRepository.findOne({
+          where: { id: childCategory.id },
+          relations: [
+            'products',
+            'products.photos',
+            'products.shop',
+            'products.attributes',
+            'products.attributes.type',
+            'products.ratings',
+            'products.activePromotion',
+          ],
+        });
+        
+        if (childWithProducts?.products) {
+          allProducts = [...allProducts, ...childWithProducts.products];
+        }
       }
     }
     
@@ -209,17 +297,65 @@ export class CategoriesService {
     limit: number,
     withHidden?: boolean,
   ): Promise<{ data: Product[]; total: number; page: number; limit: number; totalPages: number }> {
-    // Get the category with its direct products and child categories
-    const category = await this.getCategory(id, true, true);
+    console.log(`🔍 [getCategoryProductsPaginated] ID: ${id}, Page: ${page}, Limit: ${limit}`);
+    
+    // Get the category with its products and complete relations
+    const category = await this.categoriesRepository.findOne({
+      where: { id },
+      relations: [
+        'childCategories',
+        'products',
+        'products.photos',
+        'products.shop',
+        'products.attributes',
+        'products.attributes.type',
+        'products.ratings',
+        'products.activePromotion',
+      ],
+      order: {
+        products: {
+          id: 'DESC',
+        },
+      },
+    });
+
+    if (!category) {
+      throw new NotFoundError('category', 'id', id.toString());
+    }
+    
+    console.log(`📂 [getCategoryProductsPaginated] Categoria: ${category.name}`);
+    console.log(`   - Produtos diretos: ${category.products?.length || 0}`);
+    console.log(`   - Subcategorias: ${category.childCategories?.length || 0}`);
     
     // Collect products from this category
     let allProducts = [...category.products];
     
     // If this category has child categories, get their products too
     if (category.childCategories && category.childCategories.length > 0) {
+      console.log(`   🔄 Buscando produtos das ${category.childCategories.length} subcategorias...`);
+      
       for (const childCategory of category.childCategories) {
-        const childWithProducts = await this.getCategory(childCategory.id, false, true);
-        allProducts = [...allProducts, ...childWithProducts.products];
+        console.log(`      - [${childCategory.id}] ${childCategory.name}`);
+        
+        const childWithProducts = await this.categoriesRepository.findOne({
+          where: { id: childCategory.id },
+          relations: [
+            'products',
+            'products.photos',
+            'products.shop',
+            'products.attributes',
+            'products.attributes.type',
+            'products.ratings',
+            'products.activePromotion',
+          ],
+        });
+        
+        if (childWithProducts?.products) {
+          console.log(`        ✓ ${childWithProducts.products.length} produtos`);
+          allProducts = [...allProducts, ...childWithProducts.products];
+        } else {
+          console.log(`        ⚠️  0 produtos`);
+        }
       }
     }
     
@@ -231,11 +367,15 @@ export class CategoriesService {
     // Filter by visibility if needed
     let products = withHidden ? uniqueProducts : uniqueProducts.filter((product) => product.visible);
     
+    console.log(`   ✅ Total: ${uniqueProducts.length} produtos (${products.length} visíveis)`);
+    
     const total = products.length;
     const totalPages = Math.ceil(total / limit);
     const start = (page - 1) * limit;
     const end = start + limit;
     const data = products.slice(start, end);
+    
+    console.log(`   📄 Retornando página ${page}/${totalPages} (${data.length} produtos)`);
     
     return { data, total, page, limit, totalPages };
   }
