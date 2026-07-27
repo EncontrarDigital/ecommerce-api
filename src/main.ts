@@ -101,7 +101,8 @@ async function bootstrap() {
         'https://admin.encontrarshopping.com',
         'https://encontrarshopping.com',
         'https://www.encontrarshopping.com',
-        'https://www.admin.encontrarshopping.com'
+        'https://www.admin.encontrarshopping.com',
+        'http://localhost:3101' // Local development frontend
       ],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
