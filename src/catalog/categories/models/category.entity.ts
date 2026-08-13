@@ -31,6 +31,9 @@ export class Category {
   @Column({ nullable: true })
   slug?: string;
 
+  @Column({ nullable: true })
+  seo_slug?: string;
+
   @Column({ type: 'double precision', default: 0 })
   service_fee: number;
   

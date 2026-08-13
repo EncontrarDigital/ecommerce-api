@@ -32,6 +32,10 @@ export class CategoryUpdateDto {
   @IsOptional()
   slug?: string;
 
+  @IsString()
+  @IsOptional()
+  seo_slug?: string;
+
   @IsNumber()
   @Min(0)
   @IsOptional()
