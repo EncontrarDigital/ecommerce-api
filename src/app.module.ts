@@ -123,6 +123,9 @@ import { ChatModule } from './chat/chat.module';
         new ValidationPipe({
           whitelist: true,
           transform: true,
+          transformOptions: {
+            enableImplicitConversion: true, // ← Converte strings para números automaticamente
+          },
         }),
     },
     {
